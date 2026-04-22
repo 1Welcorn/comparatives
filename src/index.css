@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  --accent: #FFCC00;
+  --secondary: #FF3366;
+  --bg-dark: #121212;
+  --card-bg: #1E1E1E;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: #FFFFFF;
+}
+
+.huge-text {
+  font-size: clamp(3rem, 15vw, 120px);
+  line-height: 0.9;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+}
+
+.stat-val {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.stat-label {
+  font-size: 10px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Custom Scrollbar for TV Displays */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 6px;
+  border: 3px solid var(--bg-dark);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #fff;
+}
