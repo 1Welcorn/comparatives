@@ -666,9 +666,23 @@ export default function App() {
               key="end"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="fixed inset-0 z-[200] bg-[#121212] flex flex-col items-center justify-center p-8 overflow-hidden"
+              className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-8 overflow-hidden bg-black"
             >
-              <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none animate-spin-slow">
+              {/* Epic Cinematic Video Background */}
+              <div className="absolute inset-0 z-0">
+                <video 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover opacity-60"
+                  src="https://res.cloudinary.com/dldsfhrw4/video/upload/v1776913954/grok-video-53cddfb5-fc36-4bbe-a585-8ea74662c2eb_g5spfk.mp4"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-[#121212]/80" />
+              </div>
+
+              {/* The existing conic gradient (added blending so it overlays the video beautifully) */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none animate-spin-slow z-0 mix-blend-screen">
                 <div className="w-[150vw] h-[150vw] bg-[conic-gradient(var(--tw-gradient-stops))] from-transparent via-[#FFCC00] to-transparent rounded-full" />
               </div>
 
@@ -676,24 +690,13 @@ export default function App() {
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", bounce: 0.5, duration: 1 }}
-                className="relative z-10 flex flex-col items-center"
+                className="relative z-10 flex flex-col items-center mt-12"
               >
-                <div className={`p-4 rounded-full border-8 shadow-[0_0_150px_rgba(255,204,0,0.5)] mb-8 ${state.winner === 'p1' ? 'bg-[#FFCC00] border-[#FFCC00]' : state.winner === 'p2' ? 'bg-[#FF3366] border-[#FF3366]' : 'bg-gray-500 border-gray-500'}`}>
-                  <div className="w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden">
-                    <img 
-                      src="https://i.ibb.co/M5BFjJVj/Gemini-Generated-Image-pegvmmpegvmmpegv.png" 
-                      alt="Will Apps Victory" 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                </div>
-
-                <div className="text-center relative z-10">
-                  <span className="text-2xl font-black text-[#FFCC00] tracking-[0.5em] uppercase mb-4 block">
+                <div className="text-center relative z-10 bg-black/40 backdrop-blur-md p-10 rounded-[3rem] border border-white/10 shadow-2xl">
+                  <span className="text-2xl font-black text-[#FFCC00] tracking-[0.5em] uppercase mb-4 block drop-shadow-lg">
                     {language === 'pt' ? 'Fim do Duelo' : 'Duel Ended'}
                   </span>
-                  <h2 className="text-[10vw] md:text-8xl font-black mb-6 uppercase tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-500">
+                  <h2 className="text-[10vw] md:text-8xl font-black mb-6 uppercase tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-500 drop-shadow-2xl">
                     {state.winner === 'p1' ? (language === 'pt' ? 'Jogador 1 Venceu!' : 'Player 1 Wins!') : 
                      state.winner === 'p2' ? (language === 'pt' ? 'Jogador 2 Venceu!' : 'Player 2 Wins!') : 
                      (language === 'pt' ? 'Empate Épico!' : 'Epic Draw!')}
@@ -701,13 +704,13 @@ export default function App() {
 
                   <div className="flex gap-12 justify-center mb-16">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-black text-[#FFCC00]/50 uppercase tracking-widest mb-2">Player 1</span>
-                      <span className="text-6xl font-black text-[#FFCC00]">{state.p1Score}</span>
+                      <span className="text-sm font-black text-[#FFCC00] uppercase tracking-widest mb-2 drop-shadow-md">Player 1</span>
+                      <span className="text-6xl font-black text-[#FFCC00] drop-shadow-[0_0_15px_rgba(255,204,0,0.5)]">{state.p1Score}</span>
                     </div>
-                    <div className="text-4xl font-black text-white/20 self-center">VS</div>
+                    <div className="text-4xl font-black text-white/40 self-center">VS</div>
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-black text-[#FF3366]/50 uppercase tracking-widest mb-2">Player 2</span>
-                      <span className="text-6xl font-black text-[#FF3366]">{state.p2Score}</span>
+                      <span className="text-sm font-black text-[#FF3366] uppercase tracking-widest mb-2 drop-shadow-md">Player 2</span>
+                      <span className="text-6xl font-black text-[#FF3366] drop-shadow-[0_0_15px_rgba(255,51,102,0.5)]">{state.p2Score}</span>
                     </div>
                   </div>
 
@@ -715,7 +718,7 @@ export default function App() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleStart}
-                    className="flex items-center justify-center gap-4 bg-white text-black px-12 py-6 rounded-full font-black uppercase tracking-widest text-2xl hover:bg-[#FFCC00] transition-colors relative group mx-auto shadow-[0_20px_50px_rgba(255,255,255,0.2)]"
+                    className="flex items-center justify-center gap-4 bg-white text-black px-12 py-6 rounded-full font-black uppercase tracking-widest text-2xl hover:bg-[#FFCC00] transition-colors relative group mx-auto shadow-[0_20px_50px_rgba(255,255,255,0.4)]"
                   >
                     <RotateCcw size={28} className="group-hover:-rotate-90 transition-transform duration-500" />
                     {language === 'pt' ? 'NOVO DUELO' : 'NEW DUEL'}
