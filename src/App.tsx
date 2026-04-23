@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, RotateCcw, Play, BookOpen, Crown, Zap, Globe2, User, Bot, Home, ArrowLeft } from 'lucide-react';
+import { Trophy, RotateCcw, Play, BookOpen, Crown, Zap, Globe2, User, Bot, Home, ArrowLeft, Swords } from 'lucide-react';
 import { GameState, Language } from './types';
 import { UI_DATA, QUESTIONS, RULES } from './constants';
 import BattleScene from './components/BattleScene';
@@ -20,10 +20,16 @@ export default function App() {
     health: 100,
     enemyHealth: 100,
     streak: 0,
+    p2Errors: 0,
     currentQuestionIndex: 0,
+    shuffledQuestionIndices: QUESTIONS.map((_, i) => i), // initial unshuffled sequence
     status: 'start',
     turnPhase: 'intro',
     activePlayer: 'p1',
+    questionsPlayed: 0,
+    isTiebreaker: false,
+    showTiebreakerAnnounce: false,
+    winner: null,
   };
 
   const [state, setState] = useState<GameState>(INITIAL_STATE);
@@ -39,7 +45,20 @@ export default function App() {
   const t = UI_DATA[language];
 
   const handleStart = () => {
-    setState({ ...INITIAL_STATE, status: 'playing', turnPhase: 'intro', activePlayer: 'p1' });
+    // Generate a new shuffled array for the match
+    const indices = QUESTIONS.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+  
+    setState({ 
+      ...INITIAL_STATE, 
+      shuffledQuestionIndices: indices,
+      status: 'playing', 
+      turnPhase: 'intro', 
+      activePlayer: 'p1' 
+    });
     setSelectedAnswer(null);
     setShowFeedback(false);
     setIsObjectiveMaximized(false);
@@ -55,7 +74,9 @@ export default function App() {
     setSelectedAnswer(option);
     setShowFeedback(true);
     
-    const currentQuestion = QUESTIONS[state.currentQuestionIndex];
+    // Get the actual question from the shuffled indices array
+    const realIndex = state.shuffledQuestionIndices[state.currentQuestionIndex];
+    const currentQuestion = QUESTIONS[realIndex];
     const correct = option === currentQuestion.correctAnswer;
 
     setIsAttacking(true);
@@ -71,10 +92,6 @@ export default function App() {
       
     setAttackTarget(target);
 
-    // Automatically transition back to intro/result phase to show animation?
-    // User wants: Score -> Select Player (Pulse) -> Question.
-    // Let's stay on question for feedback, then click next to go to next intro.
-    
     setTimeout(() => {
       setIsAttacking(false);
       setAttackTarget(null);
@@ -86,6 +103,7 @@ export default function App() {
         let nextEnemyHealth = prev.enemyHealth;
         let nextP1Score = prev.p1Score;
         let nextP2Score = prev.p2Score;
+        let nextP2Errors = prev.p2Errors;
 
         if (isP1) {
           if (correct) {
@@ -103,13 +121,11 @@ export default function App() {
           } else {
             nextEnemyHealth = Math.max(0, prev.enemyHealth - 25);
             nextP2Score = Math.max(0, prev.p2Score - 1);
+            nextP2Errors += 1;
           }
         }
         
         const nextStreak = correct ? prev.streak + 1 : 0;
-
-        if (nextHealth <= 0) return { ...prev, health: 0, status: 'gameover' };
-        if (nextEnemyHealth <= 0) return { ...prev, enemyHealth: 0, p1Score: nextP1Score, p2Score: nextP2Score, status: 'victory' };
 
         return {
           ...prev,
@@ -118,6 +134,7 @@ export default function App() {
           p1Score: nextP1Score,
           p2Score: nextP2Score,
           streak: nextStreak,
+          p2Errors: nextP2Errors,
         };
       });
     }, 1000);
@@ -126,12 +143,54 @@ export default function App() {
   const nextQuestion = () => {
     setSelectedAnswer(null);
     setShowFeedback(false);
-    setState(prev => ({
-      ...prev,
-      turnPhase: 'intro',
-      activePlayer: prev.activePlayer === 'p1' ? 'p2' : 'p1',
-      currentQuestionIndex: (prev.currentQuestionIndex + 1) % QUESTIONS.length,
-    }));
+    setState(prev => {
+      const nextQuestionsPlayed = prev.questionsPlayed + 1;
+      
+      let nextStatus = prev.status;
+      let nextIsTiebreaker = prev.isTiebreaker;
+      let nextWinner = prev.winner;
+      let nextShowTiebreakerAnnounce = prev.showTiebreakerAnnounce;
+      
+      if (!prev.isTiebreaker && nextQuestionsPlayed === 10) {
+        if (prev.p1Score !== prev.p2Score) {
+          nextStatus = 'victory';
+          nextWinner = prev.p1Score > prev.p2Score ? 'p1' : 'p2';
+        } else {
+          nextIsTiebreaker = true;
+          nextShowTiebreakerAnnounce = true;
+        }
+      } else if (prev.isTiebreaker && nextQuestionsPlayed >= 16) {
+        // max tiebreakers used (3 more for each side -> 6 questions total -> 16 questions)
+        nextStatus = 'victory';
+        if (prev.p1Score > prev.p2Score) nextWinner = 'p1';
+        else if (prev.p2Score > prev.p1Score) nextWinner = 'p2';
+        else nextWinner = 'tie';
+      }
+
+      if (nextStatus === 'victory') {
+         return {
+           ...prev,
+           questionsPlayed: nextQuestionsPlayed,
+           isTiebreaker: nextIsTiebreaker,
+           status: nextStatus,
+           winner: nextWinner
+         }
+      }
+
+      return {
+        ...prev,
+        questionsPlayed: nextQuestionsPlayed,
+        isTiebreaker: nextIsTiebreaker,
+        showTiebreakerAnnounce: nextShowTiebreakerAnnounce,
+        turnPhase: 'intro',
+        activePlayer: prev.activePlayer === 'p1' ? 'p2' : 'p1',
+        currentQuestionIndex: (prev.currentQuestionIndex + 1) % QUESTIONS.length,
+      };
+    });
+  };
+
+  const closeTiebreakerAnnounce = () => {
+    setState(prev => ({ ...prev, showTiebreakerAnnounce: false }));
   };
 
   return (
@@ -304,15 +363,15 @@ export default function App() {
             >
               {!isObjectiveMaximized && (
                 <div className="relative group">
-                  <div className="absolute inset-0 bg-blue-500 blur-[80px] opacity-20 group-hover:opacity-30 transition-opacity" />
-                  <div className="w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 p-1 relative z-10">
-                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center p-8 overflow-hidden">
-                        <motion.div 
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                          className="absolute inset-0 opacity-10 border-2 border-dashed border-white rounded-full"
+                  <div className="absolute inset-0 bg-[#FFCC00] blur-[80px] opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-tr from-[#FFCC00] to-yellow-400 p-1 relative z-10">
+                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                        <img 
+                          src="https://i.ibb.co/M5BFjJVj/Gemini-Generated-Image-pegvmmpegvmmpegv.png" 
+                          alt="Will Apps" 
+                          className="w-full h-full object-cover rounded-full relative z-20"
+                          referrerPolicy="no-referrer"
                         />
-                        <Globe2 size={80} className="text-blue-500 relative z-20" />
                     </div>
                   </div>
                 </div>
@@ -406,6 +465,49 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex flex-col gap-12 w-full"
             >
+              <AnimatePresence>
+                {state.showTiebreakerAnnounce && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.2 }}
+                    className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-3xl flex flex-col items-center justify-center p-8 text-center"
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none animate-pulse">
+                      <div className="w-[150vw] h-[150vw] bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-[#FF3366] via-black to-transparent rounded-full" />
+                    </div>
+                    <motion.div 
+                      className="relative z-10 flex flex-col items-center"
+                      initial={{ y: 50 }}
+                      animate={{ y: 0 }}
+                      transition={{ type: "spring", bounce: 0.6 }}
+                    >
+                      <Swords size={120} className="text-[#FFCC00] mb-8 animate-bounce" />
+                      <h2 className="text-6xl md:text-8xl font-black text-white uppercase tracking-tighter mb-4 leading-none">
+                        {language === 'pt' ? 'EMPATE!' : 'DRAW!'}
+                      </h2>
+                      <p className="text-2xl md:text-4xl text-[#FFCC00] font-black uppercase tracking-widest mb-12">
+                        {language === 'pt' ? 'MORTE SÚBITA' : 'SUDDEN DEATH'}
+                      </p>
+                      <p className="text-xl md:text-2xl text-white/70 font-bold max-w-2xl mx-auto mb-16">
+                        {language === 'pt' 
+                          ? 'Muralha! Estão empatados. Iremos para 3 rodadas de desempate.' 
+                          : 'You are tied. We are entering 3 tiebreaker rounds.'}
+                      </p>
+                      
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={closeTiebreakerAnnounce}
+                        className="bg-[#FFCC00] text-black px-12 py-6 rounded-full font-black uppercase tracking-widest text-2xl shadow-[0_20px_50px_rgba(255,204,0,0.4)] hover:bg-white transition-colors"
+                      >
+                        {language === 'pt' ? 'VAMOS AO DESEMPATE' : 'START TIEBREAKER'}
+                      </motion.button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {state.turnPhase === 'intro' ? (
                 <div className="flex flex-col items-center gap-12">
                    <div className="text-center">
@@ -482,13 +584,13 @@ export default function App() {
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.8, y: -20 }}
                           className={`w-full p-6 md:p-8 rounded-[2.5rem] border-[4px] backdrop-blur-3xl text-center shadow-[0_30px_100px_rgba(0,0,0,0.5)] z-30 flex flex-col md:flex-row items-center justify-between gap-6 ${
-                            selectedAnswer === QUESTIONS[state.currentQuestionIndex].correctAnswer 
+                            selectedAnswer === QUESTIONS[state.shuffledQuestionIndices[state.currentQuestionIndex]].correctAnswer 
                               ? 'bg-[#FFCC00] text-black border-white/20' 
                               : 'bg-[#FF3366] text-white border-white/20'
                           }`}
                         >
                           <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                            {selectedAnswer === QUESTIONS[state.currentQuestionIndex].correctAnswer ? (
+                            {selectedAnswer === QUESTIONS[state.shuffledQuestionIndices[state.currentQuestionIndex]].correctAnswer ? (
                               <>
                                 <div className="flex items-center gap-4 mb-1">
                                   <Zap fill="currentColor" size={24} />
@@ -505,7 +607,9 @@ export default function App() {
                                 <div className="flex items-center gap-4 mb-1">
                                   <RotateCcw size={24} />
                                   <p className="text-2xl md:text-4xl font-black uppercase tracking-tighter">
-                                    {language === 'pt' ? 'FOI QUASE LÁ!' : 'ALMOST THERE!'}
+                                    {state.activePlayer === 'p2' && state.p2Errors >= 2 
+                                      ? (language === 'pt' ? 'Meu Deus, errou de novo!!' : 'My God, missed again!!')
+                                      : (language === 'pt' ? 'FOI QUASE LÁ!' : 'ALMOST THERE!')}
                                   </p>
                                 </div>
                                 <p className="text-lg md:text-xl font-bold opacity-80">
@@ -520,7 +624,7 @@ export default function App() {
                             animate={{ opacity: 1, scale: 1 }}
                             onClick={nextQuestion}
                             className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black uppercase tracking-tight text-lg transition-all shadow-xl group z-40 ${
-                              selectedAnswer === QUESTIONS[state.currentQuestionIndex].correctAnswer
+                              selectedAnswer === QUESTIONS[state.shuffledQuestionIndices[state.currentQuestionIndex]].correctAnswer
                                 ? 'bg-black text-[#FFCC00] hover:scale-105'
                                 : 'bg-white text-[#FF3366] hover:scale-105'
                             }`}
@@ -534,7 +638,7 @@ export default function App() {
 
                    <div className="w-full">
                      <QuestionCard
-                      question={QUESTIONS[state.currentQuestionIndex]}
+                      question={QUESTIONS[state.shuffledQuestionIndices[state.currentQuestionIndex]]}
                       selectedAnswer={selectedAnswer}
                       showFeedback={showFeedback}
                       onSelect={handleAnswer}
@@ -557,31 +661,67 @@ export default function App() {
             </motion.div>
           )}
 
-          {(state.status === 'gameover' || state.status === 'victory') && (
+          {state.status === 'victory' && (
             <motion.div
               key="end"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-20 flex flex-col items-center gap-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-[200] bg-[#121212] flex flex-col items-center justify-center p-8 overflow-hidden"
             >
-              <div className={`p-8 rounded-full ${state.status === 'victory' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-red-500/20 text-red-500'}`}>
-                {state.status === 'victory' ? <Crown size={120} /> : <RotateCcw size={120} />}
+              <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none animate-spin-slow">
+                <div className="w-[150vw] h-[150vw] bg-[conic-gradient(var(--tw-gradient-stops))] from-transparent via-[#FFCC00] to-transparent rounded-full" />
               </div>
-              <div>
-                <h2 className="text-6xl font-black mb-2 uppercase italic tracking-tighter">
-                  {state.status === 'victory' ? t.victoryTitle : t.gameoverTitle}
-                </h2>
-                <p className="text-white/40 font-mono tracking-widest uppercase mb-12">
-                  Player 1 Score: {state.p1Score}
-                </p>
-                <button
-                  onClick={handleStart}
-                  className="flex items-center justify-center gap-3 bg-white text-black px-12 py-5 rounded-full font-bold hover:bg-blue-400 transition-all active:scale-95 mx-auto"
-                >
-                  <RotateCcw size={20} />
-                  {t.playAgain}
-                </button>
-              </div>
+
+              <motion.div 
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", bounce: 0.5, duration: 1 }}
+                className="relative z-10 flex flex-col items-center"
+              >
+                <div className={`p-4 rounded-full border-8 shadow-[0_0_150px_rgba(255,204,0,0.5)] mb-8 ${state.winner === 'p1' ? 'bg-[#FFCC00] border-[#FFCC00]' : state.winner === 'p2' ? 'bg-[#FF3366] border-[#FF3366]' : 'bg-gray-500 border-gray-500'}`}>
+                  <div className="w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden">
+                    <img 
+                      src="https://i.ibb.co/M5BFjJVj/Gemini-Generated-Image-pegvmmpegvmmpegv.png" 
+                      alt="Will Apps Victory" 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-center relative z-10">
+                  <span className="text-2xl font-black text-[#FFCC00] tracking-[0.5em] uppercase mb-4 block">
+                    {language === 'pt' ? 'Fim do Duelo' : 'Duel Ended'}
+                  </span>
+                  <h2 className="text-[10vw] md:text-8xl font-black mb-6 uppercase tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-500">
+                    {state.winner === 'p1' ? (language === 'pt' ? 'Jogador 1 Venceu!' : 'Player 1 Wins!') : 
+                     state.winner === 'p2' ? (language === 'pt' ? 'Jogador 2 Venceu!' : 'Player 2 Wins!') : 
+                     (language === 'pt' ? 'Empate Épico!' : 'Epic Draw!')}
+                  </h2>
+
+                  <div className="flex gap-12 justify-center mb-16">
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-black text-[#FFCC00]/50 uppercase tracking-widest mb-2">Player 1</span>
+                      <span className="text-6xl font-black text-[#FFCC00]">{state.p1Score}</span>
+                    </div>
+                    <div className="text-4xl font-black text-white/20 self-center">VS</div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-black text-[#FF3366]/50 uppercase tracking-widest mb-2">Player 2</span>
+                      <span className="text-6xl font-black text-[#FF3366]">{state.p2Score}</span>
+                    </div>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleStart}
+                    className="flex items-center justify-center gap-4 bg-white text-black px-12 py-6 rounded-full font-black uppercase tracking-widest text-2xl hover:bg-[#FFCC00] transition-colors relative group mx-auto shadow-[0_20px_50px_rgba(255,255,255,0.2)]"
+                  >
+                    <RotateCcw size={28} className="group-hover:-rotate-90 transition-transform duration-500" />
+                    {language === 'pt' ? 'NOVO DUELO' : 'NEW DUEL'}
+                  </motion.button>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

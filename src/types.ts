@@ -15,10 +15,16 @@ export interface GameState {
   health: number;
   enemyHealth: number;
   streak: number;
-  currentQuestionIndex: number;
+  p2Errors: number;
+  currentQuestionIndex: number; // This will now serve as an index to the shuffled array
+  shuffledQuestionIndices: number[];
   status: 'start' | 'playing' | 'gameover' | 'victory' | 'onboarding' | 'lesson';
   turnPhase: 'intro' | 'question' | 'result';
   activePlayer: 'p1' | 'p2';
+  questionsPlayed: number;
+  isTiebreaker: boolean;
+  showTiebreakerAnnounce: boolean;
+  winner: 'p1' | 'p2' | 'tie' | null;
 }
 
 export type Language = 'en' | 'pt';

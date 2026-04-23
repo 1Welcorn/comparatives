@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Bot, Swords, Zap } from 'lucide-react';
-import ProgressBar from './ProgressBar';
+import { User, Bot, Zap } from 'lucide-react';
 
 interface Props {
   playerHealth: number;
@@ -84,14 +83,6 @@ export default function BattleScene({
               )}
             </AnimatePresence>
           </motion.div>
-          <div className="w-full max-w-md">
-            <ProgressBar
-              current={playerHealth}
-              max={100}
-              color="bg-[#FFCC00]"
-              label="PLAYER 1"
-            />
-          </div>
         </div>
 
         {/* Score Right of Player 1 */}
@@ -133,14 +124,6 @@ export default function BattleScene({
               )}
             </AnimatePresence>
           </motion.div>
-          <div className="w-full max-w-md">
-            <ProgressBar
-              current={enemyHealth}
-              max={100}
-              color="bg-[#FF3366]"
-              label="PLAYER 2"
-            />
-          </div>
         </div>
 
         {/* Score Left of Player 2 */}
