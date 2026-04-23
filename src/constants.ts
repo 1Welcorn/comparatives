@@ -15,7 +15,7 @@ export const UI_DATA: Record<'en' | 'pt', UIStrings> = {
     victoryTitle: "Victory!",
     gameoverTitle: "Game Over",
     playAgain: "Try Again",
-    onboardingText: "The primary objective of this session is to consolidate and internalize the grammatical structures discussed in previous classes. Master Comparatives and Superlatives to sharpen your linguistic precision and conquer the challenge.",
+    onboardingText: "Master Comparatives and Superlatives to sharpen your linguistic precision and conquer the challenge.",
   },
   pt: {
     title: "Duelo de Inglês: Comparações",
@@ -31,7 +31,7 @@ export const UI_DATA: Record<'en' | 'pt', UIStrings> = {
     victoryTitle: "Vitória!",
     gameoverTitle: "Fim de Jogo",
     playAgain: "Tentar Novamente",
-    onboardingText: "O objetivo principal desta sessão é consolidar e internalizar as estruturas gramaticais discutidas em aulas anteriores. Domine os Comparativos e Superlativos para aprimorar sua precisão linguística e vencer o desafio.",
+    onboardingText: "Domine os Comparativos e Superlativos para aprimorar sua precisão linguística e vencer o desafio.",
   }
 };
 

@@ -17,6 +17,8 @@ export interface GameState {
   streak: number;
   currentQuestionIndex: number;
   status: 'start' | 'playing' | 'gameover' | 'victory' | 'onboarding' | 'lesson';
+  turnPhase: 'intro' | 'question' | 'result';
+  activePlayer: 'p1' | 'p2';
 }
 
 export type Language = 'en' | 'pt';

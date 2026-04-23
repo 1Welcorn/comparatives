@@ -11,6 +11,7 @@ interface Props {
   p1Score: number;
   p2Score: number;
   activePlayer?: 'p1' | 'p2';
+  isFullPage?: boolean;
 }
 
 export default function BattleScene({ 
@@ -21,28 +22,29 @@ export default function BattleScene({
   language, 
   p1Score, 
   p2Score,
-  activePlayer 
+  activePlayer,
+  isFullPage = false
 }: Props) {
   const p1Pulse = activePlayer === 'p1' ? {
-    scale: [1, 1.05, 1],
+    scale: [1, 1.1, 1],
     boxShadow: [
       '0 30px 60px rgba(0,0,0,0.5)',
-      '0 0 80px rgba(255,204,0,0.4)',
+      '0 0 100px rgba(255,204,0,0.6)',
       '0 30px 60px rgba(0,0,0,0.5)'
     ]
   } : {};
 
   const p2Pulse = activePlayer === 'p2' ? {
-    scale: [1, 1.05, 1],
+    scale: [1, 1.1, 1],
     boxShadow: [
       '0 30px 60px rgba(0,0,0,0.5)',
-      '0 0 80px rgba(255,51,102,0.4)',
+      '0 0 100px rgba(255, 51, 102, 0.6)',
       '0 30px 60px rgba(0,0,0,0.5)'
     ]
   } : {};
 
   return (
-    <div className="relative w-full h-[40vh] md:h-[50vh] flex items-center justify-between px-12 overflow-hidden rounded-[3rem] bg-[#1E1E1E] border-8 border-white/10 shadow-2xl">
+    <div className={`relative w-full ${isFullPage ? 'min-h-[60vh] py-12' : 'h-[40vh] md:h-[50vh]'} flex items-center justify-between px-12 overflow-hidden rounded-[3rem] bg-[#1E1E1E] border-8 border-white/10 shadow-2xl transition-all duration-700`}>
       {/* Background Decor */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="grid grid-cols-12 h-full">
